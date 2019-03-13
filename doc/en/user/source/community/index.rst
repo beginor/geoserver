@@ -17,6 +17,7 @@ officially part of the GeoServer releases. They are however built along with the
 
    authkey/index
    oauth2/index
+   keycloak/index
    dds/index
    scripting/index
    spatialite/index
@@ -24,17 +25,12 @@ officially part of the GeoServer releases. They are however built along with the
    jdbcconfig/index
    mbtiles/index
    geopkg/index
-   rest/index
    pgraster/pgraster
    wps-download/index
    jms-cluster/index
    solr/index
-   sldservice/index
-   rest-upload/index
    geomesa/index
    gwc-distributed/index
-   geofence/index
-   geofence-server/index
    gdal/index
    gwc-s3/index
    gwc-sqlite/index
@@ -51,3 +47,9 @@ officially part of the GeoServer releases. They are however built along with the
    status-monitoring/index
    nsg-profile/index
    netcdf-ghrsst/index
+   monitor-hibernate/index
+   taskmanager/index
+   qose-module/index
+   ogr-store/index
+
+   

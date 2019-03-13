@@ -4,6 +4,12 @@
  */
 package org.geoserver.monitor.rest;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import org.geoserver.monitor.Monitor;
 import org.geoserver.monitor.Query;
 import org.geoserver.monitor.Query.Comparison;
@@ -21,16 +27,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
 @RestController
-@RequestMapping(path = { RestBaseController.ROOT_PATH + "/monitor/requests/{request}",
-        RestBaseController.ROOT_PATH + "/monitor/requests" })
+@RequestMapping(
+    path = {
+        RestBaseController.ROOT_PATH + "/monitor/requests/{request}",
+        RestBaseController.ROOT_PATH + "/monitor/requests"
+    }
+)
 public class MonitorRequestController extends RestBaseController {
 
     static final String CSV_MEDIATYPE_VALUE = "application/csv";
@@ -44,8 +47,6 @@ public class MonitorRequestController extends RestBaseController {
     static final MediaType ZIP_MEDIATYPE = MediaType.valueOf(ZIP_MEDIATYPE_VALUE);
 
     static final MediaType CSV_MEDIATYPE = MediaType.valueOf(CSV_MEDIATYPE_VALUE);
-
-    static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
     Monitor monitor;
 
@@ -68,7 +69,13 @@ public class MonitorRequestController extends RestBaseController {
         }
     }
 
-    @GetMapping(produces = { MediaType.TEXT_HTML_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
+    @GetMapping(
+        produces = {
+            MediaType.TEXT_HTML_VALUE,
+            MediaType.APPLICATION_XML_VALUE,
+            MediaType.APPLICATION_JSON_VALUE
+        }
+    )
     @ResponseBody
     protected RestWrapper handleObjectGetRestWrapper(
             @PathVariable(name = "request", required = false) String req,
@@ -79,9 +86,10 @@ public class MonitorRequestController extends RestBaseController {
             @RequestParam(name = "offset", required = false) Long offset,
             @RequestParam(name = "count", required = false) Long count,
             @RequestParam(name = "live", required = false) Boolean live,
-            @RequestParam(name = "fields", required = false) String fieldsSpec) throws Exception {
-        MonitorQueryResults results = handleObjectGet(req, from, to, filter, order, offset, count,
-                live, fieldsSpec);
+            @RequestParam(name = "fields", required = false) String fieldsSpec)
+            throws Exception {
+        MonitorQueryResults results =
+                handleObjectGet(req, from, to, filter, order, offset, count, live, fieldsSpec);
         Object object = results.getResult();
 
         // HTML specific bits
@@ -89,11 +97,14 @@ public class MonitorRequestController extends RestBaseController {
             return wrapObject((RequestData) object, RequestData.class);
         } else {
             final List<RequestData> requests = new ArrayList<>();
-            BaseMonitorConverter.handleRequests(object, new RequestDataVisitor() {
-                public void visit(RequestData data, Object... aggregates) {
-                    requests.add(data);
-                }
-            }, monitor);
+            BaseMonitorConverter.handleRequests(
+                    object,
+                    new RequestDataVisitor() {
+                        public void visit(RequestData data, Object... aggregates) {
+                            requests.add(data);
+                        }
+                    },
+                    monitor);
             return wrapList(requests, RequestData.class);
         }
     }
@@ -111,7 +122,7 @@ public class MonitorRequestController extends RestBaseController {
         }
     }
 
-    @GetMapping(produces = { CSV_MEDIATYPE_VALUE, EXCEL_MEDIATYPE_VALUE, ZIP_MEDIATYPE_VALUE })
+    @GetMapping(produces = {CSV_MEDIATYPE_VALUE, EXCEL_MEDIATYPE_VALUE, ZIP_MEDIATYPE_VALUE})
     @ResponseBody
     protected MonitorQueryResults handleObjectGet(
             @PathVariable(name = "request", required = false) String req,
@@ -122,20 +133,24 @@ public class MonitorRequestController extends RestBaseController {
             @RequestParam(name = "offset", required = false) Long offset,
             @RequestParam(name = "count", required = false) Long count,
             @RequestParam(name = "live", required = false) Boolean live,
-            @RequestParam(name = "fields", required = false) String fieldsSpec) throws Exception {
+            @RequestParam(name = "fields", required = false) String fieldsSpec)
+            throws Exception {
         String[] fields = getFields(fieldsSpec);
 
         if (req == null) {
-            Query q = new Query().between(from != null ? parseDate(from) : null,
-                    to != null ? parseDate(to) : null);
+            Query q =
+                    new Query()
+                            .between(
+                                    from != null ? parseDate(from) : null,
+                                    to != null ? parseDate(to) : null);
 
             // filter
             if (filter != null) {
                 try {
                     parseFilter(filter, q);
                 } catch (Exception e) {
-                    throw new RestException("Error parsing filter " + filter,
-                            HttpStatus.BAD_REQUEST, e);
+                    throw new RestException(
+                            "Error parsing filter " + filter, HttpStatus.BAD_REQUEST, e);
                 }
             }
 
@@ -162,14 +177,18 @@ public class MonitorRequestController extends RestBaseController {
             // live?
             if (live != null) {
                 if (live) {
-                    q.filter("status",
-                            Arrays.asList(org.geoserver.monitor.RequestData.Status.RUNNING,
+                    q.filter(
+                            "status",
+                            Arrays.asList(
+                                    org.geoserver.monitor.RequestData.Status.RUNNING,
                                     org.geoserver.monitor.RequestData.Status.WAITING,
                                     org.geoserver.monitor.RequestData.Status.CANCELLING),
                             Comparison.IN);
                 } else {
-                    q.filter("status",
-                            Arrays.asList(org.geoserver.monitor.RequestData.Status.FINISHED,
+                    q.filter(
+                            "status",
+                            Arrays.asList(
+                                    org.geoserver.monitor.RequestData.Status.FINISHED,
                                     org.geoserver.monitor.RequestData.Status.FAILED),
                             Comparison.IN);
                 }
@@ -188,17 +207,15 @@ public class MonitorRequestController extends RestBaseController {
 
     Date parseDate(String s) {
         try {
-            return DATE_FORMAT.parse(s);
+            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse(s);
         } catch (ParseException e) {
             return Converters.convert(s, Date.class);
         }
-
     }
 
     void parseFilter(String filter, Query q) {
         for (String s : filter.split(";")) {
-            if ("".equals(s.trim()))
-                continue;
+            if ("".equals(s.trim())) continue;
             String[] split = s.split(":");
 
             String left = split[0];
@@ -230,8 +247,8 @@ public class MonitorRequestController extends RestBaseController {
         if (req == null) {
             monitor.getDAO().clear();
         } else {
-            throw new RestException("Cannot delete a specific request", HttpStatus.METHOD_NOT_ALLOWED);
+            throw new RestException(
+                    "Cannot delete a specific request", HttpStatus.METHOD_NOT_ALLOWED);
         }
     }
-
 }

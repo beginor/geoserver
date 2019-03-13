@@ -163,6 +163,7 @@
             <option value="image/gif">GIF</option>
             <option id="jpeg" value="image/jpeg">JPEG</option>
             <option id="jpeg-png" value="image/vnd.jpeg-png">JPEG-PNG</option>
+            <option id="jpeg-png8" value="image/vnd.jpeg-png8">JPEG-PNG8</option>
           </select>
         </li>
         <li>
@@ -260,7 +261,7 @@
           params: {'FORMAT': format,
                    'VERSION': '1.1.1',  
              <#list parameters as param>
-                ${param.name?js_string}: '${param.value?js_string}',
+                "${param.name?js_string}": '${param.value?js_string}',
              </#list>
           }
         })
@@ -273,7 +274,7 @@
                    'VERSION': '1.1.1',
                    tiled: true,
              <#list parameters as param>
-                ${param.name?js_string}: '${param.value?js_string}',
+                "${param.name?js_string}": '${param.value?js_string}',
              </#list>
              tilesOrigin: ${request.bbox.minX?c} + "," + ${request.bbox.minY?c}
           }
@@ -282,7 +283,9 @@
       var projection = new ol.proj.Projection({
           code: '${request.SRS?js_string}',
           units: '${units?js_string}',
+          <#if yx == "true">
           axisOrientation: 'neu',
+          </#if>
           global: ${global}
       });
       var map = new ol.Map({

@@ -15,9 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.imageio.ImageWriteParam;
-
 import org.apache.commons.io.IOUtils;
 import org.geoserver.wcs.responses.GeoTiffWriterHelper;
 import org.geoserver.wps.WPSException;
@@ -25,27 +23,28 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.UnknownFormat;
+import org.geotools.gce.geotiff.GeoTiffFormat;
 import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.process.ProcessException;
 import org.geotools.util.logging.Logging;
+import org.opengis.parameter.ParameterValueGroup;
 
 /**
  * Decodes/encodes a GeoTIFF file
- * 
+ *
  * @author Andrea Aime - OpenGeo
  * @author Simone Giannecchini, GeoSolutions
  * @author Daniele Romagnoli, GeoSolutions
- * 
  */
 public class GeoTiffPPIO extends BinaryPPIO {
 
     protected static final String TILE_WIDTH_KEY = "tilewidth";
     protected static final String TILE_HEIGHT_KEY = "tileheight";
     protected static final String COMPRESSION_KEY = "compression";
-    protected static final String QUALITY_KEY = "quality";
+    protected static final String WRITENODATA_KEY = "writenodata";
 
     private static final Set<String> SUPPORTED_PARAMS = new HashSet<String>();
-    
+
     private static final String SUPPORTED_PARAMS_LIST;
 
     static {
@@ -53,9 +52,15 @@ public class GeoTiffPPIO extends BinaryPPIO {
         SUPPORTED_PARAMS.add(TILE_HEIGHT_KEY);
         SUPPORTED_PARAMS.add(COMPRESSION_KEY);
         SUPPORTED_PARAMS.add(QUALITY_KEY);
+        SUPPORTED_PARAMS.add(WRITENODATA_KEY);
 
-        SUPPORTED_PARAMS_LIST = TILE_WIDTH_KEY + " / " + TILE_HEIGHT_KEY + " / " + COMPRESSION_KEY
-                + " / " + QUALITY_KEY;
+        StringBuilder sb = new StringBuilder();
+        String prefix = "";
+        for (String param : SUPPORTED_PARAMS) {
+            sb.append(prefix).append(param);
+            prefix = " / ";
+        }
+        SUPPORTED_PARAMS_LIST = sb.toString();
     }
 
     private static final Logger LOGGER = Logging.getLogger(GeoTiffPPIO.class);
@@ -88,11 +93,12 @@ public class GeoTiffPPIO extends BinaryPPIO {
 
     @Override
     public void encode(Object value, OutputStream os) throws Exception {
-        encode (value, null, os);
+        encode(value, null, os);
     }
-    
+
     @Override
-    public void encode (Object value, Map<String, Object> encodingParameters, OutputStream os) throws Exception {
+    public void encode(Object value, Map<String, Object> encodingParameters, OutputStream os)
+            throws Exception {
         GridCoverage2D coverage = (GridCoverage2D) value;
         GeoTiffWriterHelper helper = new GeoTiffWriterHelper(coverage);
         setEncodingParams(helper, encodingParameters);
@@ -104,15 +110,17 @@ public class GeoTiffPPIO extends BinaryPPIO {
         }
     }
 
-    private void setEncodingParams(GeoTiffWriterHelper helper,
-            Map<String, Object> encodingParameters) {
+    private void setEncodingParams(
+            GeoTiffWriterHelper helper, Map<String, Object> encodingParameters) {
         if (encodingParameters != null && !encodingParameters.isEmpty()) {
             for (String encodingParam : encodingParameters.keySet()) {
                 if (!SUPPORTED_PARAMS.contains(encodingParam)) {
                     if (LOGGER.isLoggable(Level.WARNING)) {
-                        LOGGER.warning("The specified parameter will be ignored: " + encodingParam
-                                + " Supported parameters are in the list: "
-                                + SUPPORTED_PARAMS_LIST);
+                        LOGGER.warning(
+                                "The specified parameter will be ignored: "
+                                        + encodingParam
+                                        + " Supported parameters are in the list: "
+                                        + SUPPORTED_PARAMS_LIST);
                     }
                 }
             }
@@ -133,8 +141,11 @@ public class GeoTiffPPIO extends BinaryPPIO {
 
                     } catch (NumberFormatException nfe) {
                         if (LOGGER.isLoggable(Level.INFO)) {
-                            LOGGER.info("Specified tiling parameters are not valid. tileWidth = "
-                                    + tileWidth + " tileHeight = " + tileHeight);
+                            LOGGER.info(
+                                    "Specified tiling parameters are not valid. tileWidth = "
+                                            + tileWidth
+                                            + " tileHeight = "
+                                            + tileHeight);
                         }
                     }
                 }
@@ -153,11 +164,20 @@ public class GeoTiffPPIO extends BinaryPPIO {
                             if (LOGGER.isLoggable(Level.INFO)) {
                                 LOGGER.info(
                                         "Specified quality is not valid (it should be in the range [0,1])."
-                                                + " compressionQuality = " + compressionQuality);
+                                                + " compressionQuality = "
+                                                + compressionQuality);
                             }
                         }
                     }
                 }
+            }
+            ParameterValueGroup geotoolsWriteParams = helper.getGeotoolsWriteParams();
+            if (geotoolsWriteParams != null && encodingParameters.containsKey(WRITENODATA_KEY)) {
+                geotoolsWriteParams
+                        .parameter(GeoTiffFormat.WRITE_NODATA.getName().toString())
+                        .setValue(
+                                Boolean.parseBoolean(
+                                        (String) encodingParameters.get(WRITENODATA_KEY)));
             }
         }
     }
@@ -166,5 +186,4 @@ public class GeoTiffPPIO extends BinaryPPIO {
     public String getFileExtension() {
         return "tiff";
     }
-
 }

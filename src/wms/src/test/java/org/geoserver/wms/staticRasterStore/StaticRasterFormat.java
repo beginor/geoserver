@@ -4,12 +4,13 @@
  */
 package org.geoserver.wms.staticRasterStore;
 
+import java.util.HashMap;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
-import org.geotools.factory.Hints;
 import org.geotools.parameter.DefaultParameterDescriptor;
 import org.geotools.parameter.DefaultParameterDescriptorGroup;
 import org.geotools.parameter.ParameterGroup;
+import org.geotools.util.factory.Hints;
 import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridCoverageWriter;
 import org.opengis.filter.Filter;
@@ -17,11 +18,7 @@ import org.opengis.parameter.GeneralParameterDescriptor;
 import org.opengis.parameter.ParameterDescriptor;
 import org.opengis.parameter.ParameterValueGroup;
 
-import java.util.HashMap;
-
-/**
- * Format class for the static raster reader.
- */
+/** Format class for the static raster reader. */
 final class StaticRasterFormat extends AbstractGridFormat implements Format {
 
     // add filtering capabilities
@@ -31,10 +28,13 @@ final class StaticRasterFormat extends AbstractGridFormat implements Format {
     StaticRasterFormat() {
         setInfo();
         // reader capabilities
-        readParameters = new ParameterGroup(new DefaultParameterDescriptorGroup(
-                mInfo, new GeneralParameterDescriptor[]{
-                AbstractGridFormat.READ_GRIDGEOMETRY2D,
-                FILTER}));
+        readParameters =
+                new ParameterGroup(
+                        new DefaultParameterDescriptorGroup(
+                                mInfo,
+                                new GeneralParameterDescriptor[] {
+                                    AbstractGridFormat.READ_GRIDGEOMETRY2D, FILTER
+                                }));
     }
 
     private void setInfo() {

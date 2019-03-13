@@ -7,18 +7,17 @@ package org.geoserver.rest.service;
 
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.junit.Assert.*;
+
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-
+import org.geoserver.config.GeoServer;
 import org.geoserver.rest.RestBaseController;
 import org.geoserver.rest.catalog.CatalogRESTTestSupport;
-import org.geoserver.config.GeoServer;
 import org.geoserver.wcs.WCSInfo;
 import org.junit.After;
 import org.junit.Test;
-import org.w3c.dom.Document;
-
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.w3c.dom.Document;
 
 public class WCSSettingsControllerTest extends CatalogRESTTestSupport {
 
@@ -27,14 +26,15 @@ public class WCSSettingsControllerTest extends CatalogRESTTestSupport {
         revertService(WCSInfo.class, null);
     }
 
+    @Test
     public void testGetASJSON() throws Exception {
         JSON json = getAsJSON(RestBaseController.ROOT_PATH + "/services/wcs/settings.json");
         JSONObject jsonObject = (JSONObject) json;
         assertNotNull(jsonObject);
         JSONObject wcsinfo = (JSONObject) jsonObject.get("wcs");
-        assertEquals("wcs", wcsinfo.get("id"));
+        print(wcsinfo);
+        assertEquals("WCS", wcsinfo.get("name"));
         assertEquals("true", wcsinfo.get("enabled").toString().trim());
-        assertEquals("My GeoServer WCS", wcsinfo.get("name"));
         assertEquals("false", wcsinfo.get("verbose").toString().trim());
     }
 
@@ -50,14 +50,17 @@ public class WCSSettingsControllerTest extends CatalogRESTTestSupport {
 
     @Test
     public void testGetAsHTML() throws Exception {
-        getAsDOM(RestBaseController.ROOT_PATH + "/services/wcs/settings.html" );
+        getAsDOM(RestBaseController.ROOT_PATH + "/services/wcs/settings.html");
     }
 
     @Test
     public void testPutAsJSON() throws Exception {
         String json = "{'wcs': {'id':'wcs','enabled':'false','name':'WCS'}}";
-        MockHttpServletResponse response = putAsServletResponse(RestBaseController.ROOT_PATH + "/services/wcs/settings/",
-                json, "text/json");
+        MockHttpServletResponse response =
+                putAsServletResponse(
+                        RestBaseController.ROOT_PATH + "/services/wcs/settings/",
+                        json,
+                        "text/json");
         assertEquals(200, response.getStatus());
         JSON jsonMod = getAsJSON(RestBaseController.ROOT_PATH + "/services/wcs/settings.json");
         JSONObject jsonObject = (JSONObject) jsonMod;
@@ -69,14 +72,16 @@ public class WCSSettingsControllerTest extends CatalogRESTTestSupport {
 
     @Test
     public void testPutAsXML() throws Exception {
-        String xml = "<wcs>"
-                + "<id>wcs</id>"
-                + "<enabled>false</enabled>"
-                + "<name>WCS</name><title>GeoServer Web Coverage Service</title>"
-                + "<maintainer>http://geoserver.org/comm</maintainer>"
-                + "</wcs>";
-        MockHttpServletResponse response = putAsServletResponse(RestBaseController.ROOT_PATH + "/services/wcs/settings", xml,
-                "text/xml");
+        String xml =
+                "<wcs>"
+                        + "<id>wcs</id>"
+                        + "<enabled>false</enabled>"
+                        + "<name>WCS</name><title>GeoServer Web Coverage Service</title>"
+                        + "<maintainer>http://geoserver.org/comm</maintainer>"
+                        + "</wcs>";
+        MockHttpServletResponse response =
+                putAsServletResponse(
+                        RestBaseController.ROOT_PATH + "/services/wcs/settings", xml, "text/xml");
         assertEquals(200, response.getStatus());
         Document dom = getAsDOM(RestBaseController.ROOT_PATH + "/services/wcs/settings.xml");
         assertXpathEvaluatesTo("false", "/wcs/enabled", dom);
@@ -89,13 +94,15 @@ public class WCSSettingsControllerTest extends CatalogRESTTestSupport {
         WCSInfo i = geoServer.getService(WCSInfo.class);
         i.setEnabled(true);
         geoServer.save(i);
-        String xml = "<wcs>"
-                + "<id>wcs</id>"
-                + "<name>WCS</name><title>GeoServer Web Coverage Service</title>"
-                + "<maintainer>http://geoserver.org/comm</maintainer>"
-                + "</wcs>";
-        MockHttpServletResponse response = putAsServletResponse(RestBaseController.ROOT_PATH + "/services/wcs/settings", xml,
-                "text/xml");
+        String xml =
+                "<wcs>"
+                        + "<id>wcs</id>"
+                        + "<name>WCS</name><title>GeoServer Web Coverage Service</title>"
+                        + "<maintainer>http://geoserver.org/comm</maintainer>"
+                        + "</wcs>";
+        MockHttpServletResponse response =
+                putAsServletResponse(
+                        RestBaseController.ROOT_PATH + "/services/wcs/settings", xml, "text/xml");
         assertEquals(200, response.getStatus());
         Document dom = getAsDOM(RestBaseController.ROOT_PATH + "/services/wcs/settings.xml");
         assertXpathEvaluatesTo("true", "/wcs/enabled", dom);
@@ -106,6 +113,9 @@ public class WCSSettingsControllerTest extends CatalogRESTTestSupport {
 
     @Test
     public void testDelete() throws Exception {
-        assertEquals(405, deleteAsServletResponse(RestBaseController.ROOT_PATH + "/services/wcs/settings").getStatus());
+        assertEquals(
+                405,
+                deleteAsServletResponse(RestBaseController.ROOT_PATH + "/services/wcs/settings")
+                        .getStatus());
     }
 }

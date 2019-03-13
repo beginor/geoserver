@@ -6,23 +6,21 @@ package org.geoserver.csw.records;
 
 import java.util.Collection;
 import java.util.Collections;
-
 import org.eclipse.xsd.XSDComplexTypeDefinition;
 import org.eclipse.xsd.XSDTypeDefinition;
-import org.geotools.xml.Configuration;
-import org.geotools.xml.complex.FeatureTypeRegistryConfiguration;
+import org.geotools.xsd.Configuration;
+import org.geotools.xsd.complex.FeatureTypeRegistryConfiguration;
 import org.opengis.feature.type.Schema;
 
 /**
  * Simple helper for FeatureTypeRegistry, creates feature type for particular name
- * 
- * @author Niels Charlier
  *
+ * @author Niels Charlier
  */
 public class RecordFeatureTypeRegistryConfiguration implements FeatureTypeRegistryConfiguration {
-    
+
     protected String recordFeatureTypeName;
-    
+
     public RecordFeatureTypeRegistryConfiguration(String recordFeatureTypeName) {
         this.recordFeatureTypeName = recordFeatureTypeName;
     }
@@ -51,5 +49,4 @@ public class RecordFeatureTypeRegistryConfiguration implements FeatureTypeRegist
     public Collection<Configuration> getConfigurations() {
         return Collections.EMPTY_SET;
     }
-
 }

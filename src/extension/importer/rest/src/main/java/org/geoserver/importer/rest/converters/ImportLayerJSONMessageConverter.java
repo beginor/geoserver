@@ -4,11 +4,12 @@
  */
 package org.geoserver.importer.rest.converters;
 
+import java.io.IOException;
+import java.io.InputStream;
 import net.sf.json.JSONObject;
-import org.geoserver.catalog.LayerInfo;
 import org.geoserver.importer.ImportTask;
 import org.geoserver.importer.Importer;
-import org.geoserver.importer.rest.converters.ImportJSONWriter.FlushableJSONBuilder;
+import org.geoserver.importer.rest.ImportLayer;
 import org.geoserver.rest.converters.BaseMessageConverter;
 import org.geoserver.rest.util.MediaTypeExtensions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,15 +20,9 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
-
-/**
- * Convert {@link ImportTask} to/from JSON.
- */
+/** Convert {@link ImportTask} to/from JSON. */
 @Component
-public class ImportLayerJSONMessageConverter extends BaseMessageConverter<LayerInfo> {
+public class ImportLayerJSONMessageConverter extends BaseMessageConverter<ImportLayer> {
 
     Importer importer;
 
@@ -44,7 +39,7 @@ public class ImportLayerJSONMessageConverter extends BaseMessageConverter<LayerI
 
     @Override
     protected boolean supports(Class<?> clazz) {
-        return LayerInfo.class.isAssignableFrom(clazz);
+        return ImportLayer.class.isAssignableFrom(clazz);
     }
 
     @Override
@@ -56,14 +51,14 @@ public class ImportLayerJSONMessageConverter extends BaseMessageConverter<LayerI
     // Reading
     //
     @Override
-    protected LayerInfo readInternal(Class<? extends LayerInfo> clazz,
-            HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
+    protected ImportLayer readInternal(
+            Class<? extends ImportLayer> clazz, HttpInputMessage inputMessage)
+            throws IOException, HttpMessageNotReadableException {
         try (InputStream in = inputMessage.getBody()) {
             ImportJSONReader reader = new ImportJSONReader(importer);
             JSONObject json = reader.parse(in);
-            LayerInfo layer = reader.layer(json);
 
-            return layer;
+            return reader.layer(json);
         }
     }
 
@@ -71,7 +66,7 @@ public class ImportLayerJSONMessageConverter extends BaseMessageConverter<LayerI
     // writing
     //
     @Override
-    protected void writeInternal(LayerInfo layer , HttpOutputMessage outputMessage)
+    protected void writeInternal(ImportLayer layer, HttpOutputMessage outputMessage)
             throws IOException, HttpMessageNotWritableException {
 
         throw new UnsupportedOperationException();

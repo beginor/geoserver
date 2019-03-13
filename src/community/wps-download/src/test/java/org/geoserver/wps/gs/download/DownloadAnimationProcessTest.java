@@ -4,11 +4,30 @@
  */
 package org.geoserver.wps.gs.download;
 
-import it.geosolutions.imageio.utilities.ImageIOUtilities;
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import javax.imageio.ImageIO;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.geoserver.kml.KMZMapOutputFormat;
+import org.custommonkey.xmlunit.XMLAssert;
+import org.custommonkey.xmlunit.XMLUnit;
+import org.geoserver.config.GeoServerDataDirectory;
+import org.geoserver.platform.GeoServerExtensions;
+import org.geoserver.platform.resource.Resource;
 import org.geotools.image.test.ImageAssert;
+import org.hamcrest.CoreMatchers;
 import org.jcodec.api.FrameGrab;
 import org.jcodec.common.Demuxer;
 import org.jcodec.common.DemuxerTrack;
@@ -16,43 +35,33 @@ import org.jcodec.common.DemuxerTrackMeta;
 import org.jcodec.common.Format;
 import org.jcodec.common.JCodecUtil;
 import org.jcodec.common.io.NIOUtils;
-import org.jcodec.containers.mp4.demuxer.MP4Demuxer;
 import org.jcodec.scale.AWTUtil;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.w3c.dom.Document;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Enumeration;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
-import static org.junit.Assert.assertEquals;
-
 public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
 
     @Test
     public void testDescribeProcess() throws Exception {
-        Document d = getAsDOM( root() + "service=wps&request=describeprocess&identifier=gs:DownloadAnimation");
+        Document d =
+                getAsDOM(
+                        root()
+                                + "service=wps&request=describeprocess&identifier=gs:DownloadAnimation");
         // print(d);
         assertXpathExists("//ComplexOutput/Supported/Format[MimeType='video/mp4']", d);
     }
-    
+
     @Test
     public void testAnimateBmTime() throws Exception {
         String xml = IOUtils.toString(getClass().getResourceAsStream("animateBlueMarble.xml"));
         MockHttpServletResponse response = postAsServletResponse("wps", xml);
         assertEquals("video/mp4", response.getContentType());
-        
-        // JCodec API works off files only... 
+
+        // JCodec API works off files only...
         File testFile = new File("target/animateBmTime.mp4");
         FileUtils.writeByteArrayToFile(testFile, response.getContentAsByteArray());
-        
+
         // check frames and duration
         Format f = JCodecUtil.detectFormat(testFile);
         Demuxer d = JCodecUtil.createDemuxer(f, testFile);
@@ -83,12 +92,40 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
     }
 
     @Test
+    public void testAnimateFrameLimits() throws Exception {
+        // set a limit of 1 frame
+        GeoServerDataDirectory dd = getDataDirectory();
+        Properties props = new Properties();
+        props.put(DownloadServiceConfiguration.MAX_ANIMATION_FRAMES_NAME, "1");
+        Resource config = dd.get("download.properties");
+        try (OutputStream os = config.out()) {
+            props.store(os, null);
+        }
+        try {
+            String xml = IOUtils.toString(getClass().getResourceAsStream("animateBlueMarble.xml"));
+            Document dom = postAsDOM("wps", xml);
+            // print(dom);
+            XMLAssert.assertXpathExists("//wps:ProcessFailed", dom);
+            String message = XMLUnit.newXpathEngine().evaluate("//ows:ExceptionText", dom);
+            assertThat(
+                    message,
+                    CoreMatchers.containsString("More than 1 times specified in the request"));
+        } finally {
+            assertTrue("Failed to remove download configuration file", config.delete());
+            // force reset of default configuration
+            final DownloadServiceConfigurationWatcher watcher =
+                    GeoServerExtensions.bean(DownloadServiceConfigurationWatcher.class);
+            watcher.loadConfiguration();
+        }
+    }
+
+    @Test
     public void testAnimateDecoration() throws Exception {
         String xml = IOUtils.toString(getClass().getResourceAsStream("animateDecoration.xml"));
         MockHttpServletResponse response = postAsServletResponse("wps", xml);
         assertEquals("video/mp4", response.getContentType());
 
-        // JCodec API works off files only... 
+        // JCodec API works off files only...
         File testFile = new File("target/animateWaterDecoration.mp4");
         FileUtils.writeByteArrayToFile(testFile, response.getContentAsByteArray());
 
@@ -103,16 +140,18 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
         // grab first frame for test
         FrameGrab grabber = FrameGrab.createFrameGrab(NIOUtils.readableChannel(testFile));
         BufferedImage frame1 = AWTUtil.toBufferedImage(grabber.getNativeFrame());
-        ImageAssert.assertEquals(new File(SAMPLES +  "animateDecorateFirstFrame.png"), frame1, 100);
+        ImageAssert.assertEquals(new File(SAMPLES + "animateDecorateFirstFrame.png"), frame1, 100);
     }
 
     @Test
     public void testAnimateTimestamped() throws Exception {
-        String xml = IOUtils.toString(getClass().getResourceAsStream("animateBlueMarbleTimestamped.xml"));
+        String xml =
+                IOUtils.toString(
+                        getClass().getResourceAsStream("animateBlueMarbleTimestamped.xml"));
         MockHttpServletResponse response = postAsServletResponse("wps", xml);
         assertEquals("video/mp4", response.getContentType());
 
-        // JCodec API works off files only... 
+        // JCodec API works off files only...
         File testFile = new File("target/animateTimestamped.mp4");
         FileUtils.writeByteArrayToFile(testFile, response.getContentAsByteArray());
 
@@ -127,7 +166,8 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
         // grab first frame for test
         FrameGrab grabber = FrameGrab.createFrameGrab(NIOUtils.readableChannel(testFile));
         BufferedImage frame1 = AWTUtil.toBufferedImage(grabber.getNativeFrame());
-        ImageAssert.assertEquals(new File(SAMPLES +  "animateBlueMarbleTimestampedFrame1.png"), frame1, 100);
+        ImageAssert.assertEquals(
+                new File(SAMPLES + "animateBlueMarbleTimestampedFrame1.png"), frame1, 100);
     }
 
     BufferedImage grabImageFromZip(File file, String entryName) throws IOException {
@@ -135,16 +175,15 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
 
         Enumeration<? extends ZipEntry> entries = zipFile.entries();
 
-        while(entries.hasMoreElements()){
+        while (entries.hasMoreElements()) {
             ZipEntry entry = entries.nextElement();
-            if(entry.getName().equalsIgnoreCase(entryName)) {
-                try(InputStream stream = zipFile.getInputStream(entry)) {
+            if (entry.getName().equalsIgnoreCase(entryName)) {
+                try (InputStream stream = zipFile.getInputStream(entry)) {
                     return ImageIO.read(stream);
                 }
             }
         }
-        
+
         return null;
     }
-    
 }
